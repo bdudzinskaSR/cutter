@@ -1,1 +1,0 @@
-GET onet.pl HTTP/1.1
