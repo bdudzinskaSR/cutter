@@ -1,0 +1,439 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Morpheus",
+    "description": "Morpheus is an API for customized transfromations/enrichments for MaaS",
+    "contact": {
+      "email": "mint@shoprunner.com"
+    },
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Pipeline configurations",
+      "description": "Pipeline configurations provides the map of list of transformations steps per destination."
+    },
+    {
+      "name": "Destination Transformation API",
+      "description": "Destination Transformation allows configure custom tranformation for selected destination."
+    },
+    {
+      "name": "Destination Overrides API",
+      "description": "Destination Overrides allows overriding selected attributes per Eddy VariantID."
+    }
+  ],
+  "paths": {
+    "/pipelineConfigurations": {
+      "get": {
+        "tags": [
+          "Pipeline configurations"
+        ],
+        "summary": "Provides the map of list of transformations steps per destination. Those transformations should be applied to the variants for specified destination in the given order. Returns only active transformations.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "destinationIds",
+            "schema": {
+              "type": "string"
+            },
+            "example": "6unh445b,46Juzcyx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pipeline configurations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineConfigurations"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pipeline configuration(s) (destination transformations) for requested destination(s) not found"
+          }
+        }
+      }
+    },
+    "/destinations/{destinationId}/destinationTransformations": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/DestinationId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Destination Transformation API"
+        ],
+        "summary": "Lists destination transformations filtered according to optional query params",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "transformationCode",
+            "schema": {
+              "type": "string"
+            },
+            "example": "brand_in_title"
+          },
+          {
+            "in": "query",
+            "name": "active",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of destination transformations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DestinationTransformationsList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Destination Transformation API"
+        ],
+        "summary": "Creates a new destination transformation",
+        "requestBody": {
+          "description": "Definition of a new transformation",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DestinationTransformationWithoutId"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Destination transformation created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DestinationTransformationCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/destinations/{destinationId}/destinationTransformations/{destinationTransformationId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/DestinationId"
+        },
+        {
+          "$ref": "#/components/parameters/DestinationTransformationId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Destination Transformation API"
+        ],
+        "summary": "Gets exsiting transformation definition",
+        "responses": {
+          "200": {
+            "description": "Destination transformation found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DestinationTransformation"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Destination transformation not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Destination Transformation API"
+        ],
+        "summary": "Updates exsiting transformation definition",
+        "requestBody": {
+          "description": "Updated definition of transformation",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DestinationTransformationWithoutIdAndTransformationCode"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Destination transformation updated"
+          },
+          "404": {
+            "description": "Destination transformation not found"
+          }
+        }
+      }
+    },
+    "/destinations/{destinationId}/destinationOverrides/processCsv/": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/DestinationId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Destination Overrides API"
+        ],
+        "summary": "Upload CSV file with destination overrides",
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Destination upload was finished successfuly.",
+            "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "s3ObjectPath": {
+                        "type": "string",
+                        "description": "Path to the file stored on S3 bucket",
+                        "example": "s3://maas-publishing-catalog-stg/EBAY/overrides/<destinationId>/override_2020-09-18_08-25-05.csv"
+                      }
+                    }
+                  }
+                }
+              }
+          },
+          "400": {
+            "description": "Error: The file is missing."
+          },
+          "404": {
+            "description": "Error: Destination not found."
+          },
+          "500": {
+            "description": "Error while processing CSV file: "
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DestinationTransformation": {
+        "description": "Transformation that should be applied to variants for selected destination",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "79fd46a3-1b05-4765-a921-0402487e5425"
+          },
+          "transformationCode": {
+            "type": "string",
+            "description": "Name of transformation",
+            "example": "brand_in_title"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "True if transformation is enabled. False by default."
+          },
+          "data": {
+            "type": "object",
+            "description": "Data required for processing the transformation."
+          },
+          "order": {
+            "type": "integer",
+            "description": "Defines the order of processing the transformation. 100 by default."
+          }
+        }
+      },
+      "DestinationTransformationWithoutId": {
+        "description": "Schema for creating destination transformation object.",
+        "type": "object",
+        "properties": {
+          "transformationCode": {
+            "type": "string",
+            "description": "Name of transformation",
+            "example": "brand_in_title"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "True if transformation is enabled. False by default."
+          },
+          "data": {
+            "type": "object",
+            "description": "Data required for processing the transformation."
+          },
+          "order": {
+            "type": "integer",
+            "description": "Defines the order of processing the transformation. 100 by default."
+          }
+        },
+        "required": [
+          "transformationCode"
+        ]
+      },
+      "DestinationTransformationWithoutIdAndTransformationCode": {
+        "description": "Schema for updating destination transformation object. There is no possibility to update the transformationCode.",
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "boolean",
+            "description": "True if transformation is enabled. False by default."
+          },
+          "data": {
+            "type": "object",
+            "description": "Data required for processing the transformation."
+          },
+          "order": {
+            "type": "integer",
+            "description": "Defines the order of processing the transformation. 100 by default."
+          }
+        }
+      },
+      "DestinationTransformationsList": {
+        "description": "List of destination transformations",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DestinationTransformation"
+        },
+        "example": [
+          {
+            "id": "79fd46a3-1b05-4765-a921-0402487e5425",
+            "transformationCode": "brand_in_title",
+            "active": true,
+            "data": null,
+            "order": 1
+          },
+          {
+            "id": "f347d313-1595-466d-b361-af8224e66657",
+            "transformationCode": "default_inventory",
+            "active": true,
+            "data": 50,
+            "order": 100
+          }
+        ]
+      },
+      "DestinationTransformationCreated": {
+        "description": "Id of created destination transformation",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "79fd46a3-1b05-4765-a921-0402487e5425"
+          }
+        }
+      },
+      "Transformation": {
+        "description": "Generic transformation object (format expected by publishing via spark and kafka)",
+        "type": "object",
+        "properties": {
+          "transformationCode": {
+            "type": "string",
+            "description": "Name of transformation",
+            "example": "brand_in_title"
+          },
+          "data": {
+            "type": "object",
+            "description": "Data required for processing the transformation."
+          }
+        },
+        "required": [
+          "transformationCode"
+        ]
+      },
+      "PipelineConfiguration": {
+        "description": "Pipeline configuration is a list of steps that define destination transformations that should be applied to variants in defined order.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Transformation"
+        },
+        "example": {
+          "destinationTransformationConfig": [
+            {
+              "transformationCode": "brand_in_title"
+            },
+            {
+              "transformationCode": "default_inventory",
+              "data": 50
+            }
+          ]
+        }
+      },
+      "PipelineConfigurations": {
+        "description": "Pipelines configurations is a map of list of per-destination steps that define transformations that should be applied to variants.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/PipelineConfiguration"
+        },
+        "example": {
+          "6unh445b": [
+            {
+              "transformationCode": "brand_in_title",
+              "data": null
+            },
+            {
+              "transformationCode": "default_inventory",
+              "data": 50
+            }
+          ],
+          "46Juzcyx": [
+            {
+              "transformationCode": "brand_in_title",
+              "data": null
+            }
+          ]
+        }
+      }
+    },
+    "parameters": {
+      "DestinationId": {
+        "in": "path",
+        "name": "destinationId",
+        "description": "Destination Id, an identifier should come from Destination API",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "7-14 shortid format",
+          "example": "6unh445b"
+        }
+      },
+      "DestinationTransformationId": {
+        "in": "path",
+        "name": "destinationTransformationId",
+        "description": "DestinationTransformationId uniquely identifies single destination transformation",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "example": "79fd46a3-1b05-4765-a921-0402487e5425"
+        }
+      }
+    }
+  }
+}
